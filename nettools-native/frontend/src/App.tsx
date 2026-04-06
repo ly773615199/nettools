@@ -3,7 +3,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Drawer, AppBar, Toolbar, List, ListItem, ListItemIcon, ListItemText, Typography, Box, Divider } from '@mui/material';
 import {
   Home, Folder, NetworkCheck, Settings, Logout,
-  Download, Shield, Rule, Storage, Router as RouterIcon
+  Download, Shield, Rule, Storage, Router as RouterIcon,
+  Cloud, VpnKey, BackupTable, People
 } from '@mui/icons-material';
 import HomePage from './pages/HomePage';
 import FileManagementPage from './pages/FileManagementPage';
@@ -15,6 +16,10 @@ import DownloadPage from './pages/DownloadPage';
 import ClashRulesPage from './pages/ClashRulesPage';
 import SystemProxyPage from './pages/SystemProxyPage';
 import PenetrationPage from './pages/PenetrationPage';
+import FileServerPage from './pages/FileServerPage';
+import VpnManagePage from './pages/VpnManagePage';
+import BackupPage from './pages/BackupPage';
+import UserManagePage from './pages/UserManagePage';
 import { configService } from './core/config/configService';
 
 const theme = createTheme({
@@ -54,12 +59,16 @@ const navItems = [
   { path: '/files', label: 'Files', icon: <Folder /> },
   { path: '/storage', label: 'Storage', icon: <Storage /> },
   { path: '/downloads', label: 'Downloads', icon: <Download /> },
+  { path: '/fileserver', label: 'File Server', icon: <Cloud /> },
+  { path: '/backup', label: 'Backup', icon: <BackupTable /> },
   { divider: true },
   { path: '/network', label: 'Network', icon: <NetworkCheck /> },
   { path: '/clash', label: 'Clash Rules', icon: <Rule /> },
   { path: '/proxy', label: 'System Proxy', icon: <Shield /> },
+  { path: '/vpn', label: 'VPN Servers', icon: <VpnKey /> },
   { path: '/penetration', label: 'Penetration', icon: <RouterIcon /> },
   { divider: true },
+  { path: '/users', label: 'Users', icon: <People /> },
   { path: '/settings', label: 'Settings', icon: <Settings /> },
 ];
 
@@ -111,6 +120,10 @@ function MainApp() {
           <Route path="/clash" element={<ClashRulesPage />} />
           <Route path="/proxy" element={<SystemProxyPage />} />
           <Route path="/penetration" element={<PenetrationPage />} />
+          <Route path="/fileserver" element={<FileServerPage />} />
+          <Route path="/vpn" element={<VpnManagePage />} />
+          <Route path="/backup" element={<BackupPage />} />
+          <Route path="/users" element={<UserManagePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
