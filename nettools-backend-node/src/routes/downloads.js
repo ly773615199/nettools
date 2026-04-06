@@ -1,5 +1,5 @@
 /**
- * 离线下载管理路由
+ * 离线下载管理路由 [G3] - 多线程加速版
  */
 const fs = require('fs');
 const path = require('path');
@@ -7,32 +7,51 @@ const { authMiddleware } = require('../core/auth');
 const dlManager = require('../downloadManager');
 
 function registerDownloadRoutes(app) {
+  // 获取任务列表
   app.get('/api/downloads', authMiddleware, (req, res) => {
     res.json({ data: dlManager.getTasks() });
   });
 
+  // 获取单个任务
   app.get('/api/downloads/:id', authMiddleware, (req, res) => {
     const task = dlManager.getTask(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json({ data: task });
   });
 
+  // 创建下载任务（支持多线程）
   app.post('/api/downloads', authMiddleware, (req, res) => {
-    const { url, targetPath, filename } = req.body;
+    const { url, targetPath, filename, threads } = req.body;
     if (!url) return res.status(400).json({ error: 'url is required' });
-    const task = dlManager.createTask(url, targetPath, filename);
+    const task = dlManager.createTask(url, targetPath, filename, { threads: threads ? Number(threads) : 4 });
     const result = dlManager.startDownload(task.id);
     res.json({ data: task, message: result.message, error: result.error });
   });
 
+  // 删除任务
   app.delete('/api/downloads/:id', authMiddleware, (req, res) => {
     const result = dlManager.deleteTask(req.params.id);
     if (!result.success) return res.status(400).json({ error: result.error });
     res.json({ message: result.message });
   });
 
+  // 取消下载（删除分片）
   app.post('/api/downloads/:id/cancel', authMiddleware, (req, res) => {
     const result = dlManager.cancelTask(req.params.id);
+    if (!result.success) return res.status(400).json({ error: result.error });
+    res.json({ message: result.message });
+  });
+
+  // 暂停下载（保留分片，支持续传）
+  app.post('/api/downloads/:id/pause', authMiddleware, (req, res) => {
+    const result = dlManager.pauseTask(req.params.id);
+    if (!result.success) return res.status(400).json({ error: result.error });
+    res.json({ message: result.message });
+  });
+
+  // 恢复下载
+  app.post('/api/downloads/:id/resume', authMiddleware, (req, res) => {
+    const result = dlManager.resumeTask(req.params.id);
     if (!result.success) return res.status(400).json({ error: result.error });
     res.json({ message: result.message });
   });
