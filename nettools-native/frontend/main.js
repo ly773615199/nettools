@@ -1,11 +1,121 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, fork } = require('child_process');
 const os = require('os');
 const dns = require('dns');
+const http = require('http');
 
 let mainWindow = null;
 let tray = null;
+let backendProcess = null;
+let backendReady = false;
+
+// ========== 后端进程管理 ==========
+
+const BACKEND_PORT = process.env.BACKEND_PORT || 8000;
+const isDev = process.env.NODE_ENV === 'development';
+
+// 打包后后端在 extraResources/backend，开发时在 ../nettools-backend-node
+const BACKEND_DIR = isDev
+  ? path.join(__dirname, '..', 'nettools-backend-node')
+  : path.join(process.resourcesPath, 'backend');
+const BACKEND_ENTRY = path.join(BACKEND_DIR, 'src', 'index.js');
+
+/**
+ * 检测后端是否已就绪（轮询 /health）
+ */
+function waitForBackend(maxWaitMs = 15000) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      http.get(`http://localhost:${BACKEND_PORT}/health`, { timeout: 2000 }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            backendReady = true;
+            resolve(true);
+          } else if (Date.now() - start < maxWaitMs) {
+            setTimeout(check, 500);
+          } else {
+            resolve(false);
+          }
+        });
+      }).on('error', () => {
+        if (Date.now() - start < maxWaitMs) {
+          setTimeout(check, 500);
+        } else {
+          resolve(false);
+        }
+      });
+    };
+    check();
+  });
+}
+
+/**
+ * 启动后端子进程
+ */
+async function startBackend() {
+  // 如果后端已在运行（外部启动），跳过
+  const alreadyRunning = await new Promise((resolve) => {
+    http.get(`http://localhost:${BACKEND_PORT}/health`, { timeout: 1000 }, (res) => {
+      resolve(res.statusCode === 200);
+    }).on('error', () => resolve(false));
+  });
+
+  if (alreadyRunning) {
+    console.log('[Backend] Already running on port', BACKEND_PORT);
+    backendReady = true;
+    return true;
+  }
+
+  console.log('[Backend] Starting backend process...');
+  console.log('[Backend] Entry:', BACKEND_ENTRY);
+
+  try {
+    backendProcess = fork(BACKEND_ENTRY, [], {
+      cwd: BACKEND_DIR,
+      env: { ...process.env, PORT: BACKEND_PORT, NODE_ENV: isDev ? 'development' : 'production' },
+      silent: false,
+    });
+
+    backendProcess.on('error', (err) => {
+      console.error('[Backend] Process error:', err.message);
+      backendReady = false;
+    });
+
+    backendProcess.on('exit', (code, signal) => {
+      console.log('[Backend] Process exited:', code, signal);
+      backendReady = false;
+      backendProcess = null;
+    });
+
+    // 等待后端就绪
+    const ready = await waitForBackend(20000);
+    if (ready) {
+      console.log('[Backend] Ready on port', BACKEND_PORT);
+    } else {
+      console.error('[Backend] Timed out waiting for backend');
+    }
+    return ready;
+  } catch (err) {
+    console.error('[Backend] Failed to start:', err.message);
+    return false;
+  }
+}
+
+/**
+ * 停止后端子进程
+ */
+function stopBackend() {
+  if (backendProcess) {
+    console.log('[Backend] Stopping...');
+    backendProcess.kill('SIGTERM');
+    backendProcess = null;
+    backendReady = false;
+  }
+}
 
 // ========== IPC Handlers ==========
 
@@ -117,6 +227,19 @@ function registerIpcHandlers() {
   ipcMain.handle('updater:check', () => {
     return { available: false, message: 'Auto-update not configured' };
   });
+
+  // 后端进程管理
+  ipcMain.handle('backend:status', () => ({
+    running: backendReady,
+    port: BACKEND_PORT,
+    pid: backendProcess?.pid || null,
+  }));
+
+  ipcMain.handle('backend:restart', async () => {
+    stopBackend();
+    await new Promise(r => setTimeout(r, 1000));
+    return startBackend();
+  });
 }
 
 // ========== 窗口创建 ==========
@@ -135,16 +258,25 @@ function createWindow() {
     },
     icon: path.join(__dirname, 'public', 'favicon.ico'),
     show: false,
+    backgroundColor: '#1a1a2e',
   });
 
-  const isDev = process.env.NODE_ENV === 'development';
+  // 加载前端
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    // 通知渲染进程后端状态
+    if (backendReady) {
+      mainWindow.webContents.send('backend:ready', { port: BACKEND_PORT });
+    } else {
+      mainWindow.webContents.send('backend:error', { message: 'Backend failed to start' });
+    }
+  });
 
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
@@ -159,13 +291,23 @@ function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  // Dev 模式自动打开 DevTools
+  if (isDev) {
+    mainWindow.webContents.openDevTools();
+  }
 }
 
 // ========== 系统托盘 ==========
 
 function createTray() {
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
+  // 使用内联 16x16 图标（简单网络符号）
+  const iconData = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAADfSURBVDiNpZMxDoMwDEWfZmdhYuJMuEJXpu69QjccgRWJgYEjMDJ1Y4BASZzYlJCiI/m/5Cc7gH/WWmutjIjwz2kA4CWl9EJE1uWccxJCOOq6bs45r8uyvOn6vlci6kTEiMgaEfEllFxLYQCYljQNwDQNwHbNIuIxInK3LMvTsixfAIBzLgOo0vV93wfAvO8HyrLM6b2PkYhGSZL8RKQH4AvAe5ZlK13X/QGADwDvAGaAj4iIGRG5Syn9SdKDiNxKKR+6riuIyDudc84lSQKAHaBD13VnSZKkNM/fY8z/8QJ7KmJdFQ5cSwAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  const trayIcon = nativeImage.createFromBuffer(iconData);
+  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -204,8 +346,12 @@ if (!gotTheLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     registerIpcHandlers();
+
+    // 先启动后端，再创建窗口
+    await startBackend();
+
     createWindow();
     createTray();
 
@@ -218,5 +364,8 @@ if (!gotTheLock) {
     // 不退出，保持托盘运行
   });
 
-  app.on('before-quit', () => { app.isQuitting = true; });
+  app.on('before-quit', () => {
+    app.isQuitting = true;
+    stopBackend();
+  });
 }

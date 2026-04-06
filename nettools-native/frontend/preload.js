@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('updater:downloaded', (_event, info) => callback(info));
   },
 
+  // ========== 后端进程 ==========
+  getBackendStatus: () => ipcRenderer.invoke('backend:status'),
+  restartBackend: () => ipcRenderer.invoke('backend:restart'),
+
   // ========== 通用 IPC ==========
   send: (channel, data) => ipcRenderer.send(channel, data),
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
