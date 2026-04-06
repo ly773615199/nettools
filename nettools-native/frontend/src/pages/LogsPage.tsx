@@ -2,7 +2,7 @@
  * 日志查看页面 — 对标 Clash Verge Rev 的 Logs 页面
  * 实时 Clash 运行日志
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface LogEntry {
   type: 'info' | 'warning' | 'error' | 'debug';

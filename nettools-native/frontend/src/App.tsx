@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Drawer, AppBar, Toolbar, List, ListItem, ListItemIcon, ListItemText, Typography, Box, Divider } from '@mui/material';
 import {
-  Home, Folder, NetworkCheck, Settings, Logout, CloudCircle,
+  Home, Folder, NetworkCheck, Settings, Logout,
   Download, Shield, Rule, Storage, Router as RouterIcon
 } from '@mui/icons-material';
 import HomePage from './pages/HomePage';
@@ -16,7 +16,6 @@ import ClashRulesPage from './pages/ClashRulesPage';
 import SystemProxyPage from './pages/SystemProxyPage';
 import PenetrationPage from './pages/PenetrationPage';
 import { configService } from './core/config/configService';
-import { t } from './core/i18n/i18n';
 
 const theme = createTheme({
   palette: {

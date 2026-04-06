@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Container, Paper, Card, CardContent, Button, IconButton,
-  Alert, CircularProgress, Tooltip, Stack, Switch, FormControlLabel,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Divider
+  Box, Typography, Container, Card, CardContent, Button, IconButton,
+  Alert, CircularProgress, Tooltip, Switch, FormControlLabel,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip
 } from '@mui/material';
 import {
   Refresh, PlayArrow, Stop, Shield, Router,
-  Security, VpnLock, Public
+  Security
 } from '@mui/icons-material';
 import { apiClient } from '../core/api/apiClient';
 
@@ -174,7 +174,7 @@ const SystemProxyPage: React.FC = () => {
                     </Box>
                   </Box>
                 </Box>
-                <Divider sx={{ mb: 2 }} />
+                <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }} />
                 <TableContainer>
                   <Table size="small">
                     <TableHead>

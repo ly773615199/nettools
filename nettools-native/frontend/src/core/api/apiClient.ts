@@ -103,6 +103,14 @@ export class ApiClient {
     });
   }
 
+  // PATCH请求
+  async patch<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
   // 登录
   async login(username: string, password: string, rememberMe: boolean = false, captcha: string = ''): Promise<ApiResponse<{ token: string; user: any }>> {
     return this.request<{ token: string; user: any }>('/auth/login', {

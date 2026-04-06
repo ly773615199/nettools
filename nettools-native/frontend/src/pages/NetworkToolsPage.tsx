@@ -45,7 +45,7 @@ const NetworkToolsPage: React.FC = () => {
       setLoading(true);
       try {
         const res = await boreService.getTunnels();
-        setTunnels(res.data);
+        setTunnels(res.data || []);
       } catch (error) {
         console.error('Failed to fetch tunnels:', error);
       } finally {
@@ -62,7 +62,7 @@ const NetworkToolsPage: React.FC = () => {
       setLoading(true);
       try {
         const res = await clashService.getProxies();
-        setProxies(res.data);
+        setProxies(res.data || []);
       } catch (error) {
         console.error('Failed to fetch proxies:', error);
       } finally {
@@ -93,7 +93,7 @@ const NetworkToolsPage: React.FC = () => {
         });
         // 重新获取隧道列表
         const res = await boreService.getTunnels();
-        setTunnels(res.data);
+        setTunnels(res.data || []);
         setNewTunnel({ name: '', localPort: '', remoteServer: '', remotePort: '' });
         setOpenTunnelDialog(false);
       } catch (error) {
@@ -114,7 +114,7 @@ const NetworkToolsPage: React.FC = () => {
       }
       // 重新获取隧道列表
       const res = await boreService.getTunnels();
-      setTunnels(res.data);
+      setTunnels(res.data || []);
     } catch (error) {
       console.error('Failed to toggle tunnel:', error);
     } finally {
@@ -139,7 +139,7 @@ const NetworkToolsPage: React.FC = () => {
         });
         // 重新获取代理列表
         const res = await clashService.getProxies();
-        setProxies(res.data);
+        setProxies(res.data || []);
         setNewProxy({ name: '', type: 'Shadowsocks', server: '', port: '' });
         setOpenProxyDialog(false);
       } catch (error) {
@@ -160,7 +160,7 @@ const NetworkToolsPage: React.FC = () => {
       }
       // 重新获取代理列表
       const res = await clashService.getProxies();
-      setProxies(res.data);
+      setProxies(res.data || []);
     } catch (error) {
       console.error('Failed to toggle proxy:', error);
     } finally {

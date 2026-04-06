@@ -3,9 +3,9 @@ import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Button, IconButton, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  Alert, CircularProgress, LinearProgress, Tooltip, Stack
+  Alert, LinearProgress, Tooltip, Stack
 } from '@mui/material';
-import { Add, Delete, Cancel, Refresh, Download, OpenInNew } from '@mui/icons-material';
+import { Add, Delete, Cancel, Refresh, Download } from '@mui/icons-material';
 import { apiClient } from '../core/api/apiClient';
 
 interface DownloadTask {
@@ -48,21 +48,21 @@ const statusColor: Record<string, 'warning' | 'info' | 'success' | 'error' | 'de
 const DownloadPage: React.FC = () => {
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
   const [files, setFiles] = useState<DownloadedFile[]>([]);
-  const [loading, setLoading] = useState(true);
+const [_loading, _setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [newFilename, setNewFilename] = useState('');
 
   const fetchData = async () => {
-    setLoading(true);
+    _setLoading(true);
     const [tasksRes, filesRes] = await Promise.all([
       apiClient.get<any>('/downloads'),
       apiClient.get<any>('/downloads-files'),
     ]);
     if (tasksRes.data) setTasks(tasksRes.data.data || []);
     if (filesRes.data) setFiles(filesRes.data.data || []);
-    setLoading(false);
+    _setLoading(false);
   };
 
   useEffect(() => {

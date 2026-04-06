@@ -4,9 +4,9 @@ import {
   TableContainer, TableHead, TableRow, Button, IconButton, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel,
-  Alert, CircularProgress, Tooltip, Stack, Tabs, Tab, Divider
+  Alert, CircularProgress, Tooltip, Stack, Tabs, Tab
 } from '@mui/material';
-import { Add, Delete, Edit, Refresh, PlayArrow, Stop, Rule, Groups, Upload, Download } from '@mui/icons-material';
+import { Add, Delete, Edit, Refresh, Rule, Groups } from '@mui/icons-material';
 import { apiClient } from '../core/api/apiClient';
 
 // ========== Types ==========

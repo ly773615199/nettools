@@ -42,10 +42,11 @@ const FileManagementPage: React.FC = () => {
       setLoading(true);
       try {
         const res = await openlistService.getStorageServices();
-        setStorages(res.data);
-        if (res.data.length > 0) {
-          setSelectedStorage(res.data[0].id);
-          fetchFiles(res.data[0].id);
+        const data = res.data || [];
+        setStorages(data);
+        if (data.length > 0) {
+          setSelectedStorage(data[0].id);
+          fetchFiles(data[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch storages:', error);
@@ -62,7 +63,7 @@ const FileManagementPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await openlistService.listFiles(storageId, '/');
-      setFiles(res.data);
+      setFiles(res.data || []);
     } catch (error) {
       console.error('Failed to fetch files:', error);
     } finally {
@@ -89,7 +90,7 @@ const FileManagementPage: React.FC = () => {
         });
         // 重新获取存储服务列表
         const res = await openlistService.getStorageServices();
-        setStorages(res.data);
+        setStorages(res.data || []);
         setNewStorage({ name: '', type: 'local', path: '/' });
         setOpenStorageDialog(false);
       } catch (error) {
@@ -110,7 +111,7 @@ const FileManagementPage: React.FC = () => {
       }
       // 重新获取存储服务列表
       const res = await openlistService.getStorageServices();
-      setStorages(res.data);
+      setStorages(res.data || []);
     } catch (error) {
       console.error('Failed to toggle storage:', error);
     } finally {

@@ -90,7 +90,7 @@ export class BoreService {
   // 获取隧道状态
   async getTunnelStatus(id: string): Promise<ApiResponse<{ status: string; details: any }>> {
     const tunnels = await this.getTunnels();
-    const tunnel = tunnels.data.find(t => t.id === id);
+    const tunnel = (tunnels.data || []).find(t => t.id === id);
     if (tunnel) {
       return {
         data: {
@@ -313,7 +313,7 @@ remotePort: ${tunnel.remotePort}
   }
 
   // 测试隧道服务器连接
-  async testTunnelServerConnection(host: string, port: number, _authToken: string): Promise<ApiResponse<{ status: string; latency: number }>> {
+  async testTunnelServerConnection(host: string, _port: number, _authToken: string): Promise<ApiResponse<{ status: string; latency: number }>> {
     const pingResp = await this.testConnection(host);
     return {
       data: {

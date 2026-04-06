@@ -284,7 +284,7 @@ export class ClashService {
   // 获取代理状态
   async getProxyStatus(id: string): Promise<ApiResponse<{ status: string; details: any }>> {
     const proxies = await this.getProxies();
-    const proxy = proxies.data.find(p => p.id === id);
+    const proxy = (proxies.data || []).find(p => p.id === id);
     if (!proxy) {
       return { data: { status: 'not_found', details: {} }, error: 'Proxy not found' };
     }

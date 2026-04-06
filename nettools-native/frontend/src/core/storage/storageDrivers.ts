@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types';
-import { StorageDriver } from './storageService';
+import { StorageDriverInfo } from './storageService';
 
 /**
  * 云存储驱动基类
@@ -8,7 +8,7 @@ import { StorageDriver } from './storageService';
  */
 
 // 阿里云盘驱动 — 需要配置 refreshToken
-export class AliyunDriveDriver extends StorageDriver {
+export class AliyunDriveDriver implements StorageDriverInfo {
   id: string;
   name: string;
   type: string;
@@ -16,7 +16,6 @@ export class AliyunDriveDriver extends StorageDriver {
   config: Record<string, any>;
 
   constructor(config: { id: string; name: string; refreshToken: string }) {
-    super();
     this.id = config.id;
     this.name = config.name;
     this.type = 'aliyundrive';
@@ -58,7 +57,7 @@ export class AliyunDriveDriver extends StorageDriver {
 }
 
 // OneDrive驱动 — 需要配置 accessToken
-export class OneDriveDriver extends StorageDriver {
+export class OneDriveDriver implements StorageDriverInfo {
   id: string;
   name: string;
   type: string;
@@ -66,7 +65,6 @@ export class OneDriveDriver extends StorageDriver {
   config: Record<string, any>;
 
   constructor(config: { id: string; name: string; accessToken: string }) {
-    super();
     this.id = config.id;
     this.name = config.name;
     this.type = 'onedrive';
@@ -108,7 +106,7 @@ export class OneDriveDriver extends StorageDriver {
 }
 
 // Google Drive驱动 — 需要配置 accessToken
-export class GoogleDriveDriver extends StorageDriver {
+export class GoogleDriveDriver implements StorageDriverInfo {
   id: string;
   name: string;
   type: string;
@@ -116,7 +114,6 @@ export class GoogleDriveDriver extends StorageDriver {
   config: Record<string, any>;
 
   constructor(config: { id: string; name: string; accessToken: string }) {
-    super();
     this.id = config.id;
     this.name = config.name;
     this.type = 'googledrive';

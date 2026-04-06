@@ -9,8 +9,8 @@ export class OpenListService {
 
   /** 获取存储服务列表 */
   async getStorageServices(): Promise<ApiResponse<StorageService[]>> {
-    const response = await apiClient.get<{ data: StorageService[]; total: number }>('/storage-manager/list');
-    // 兼容：如果 storage-manager 路由不可用，回退到 drivers 列表
+    const response = await apiClient.get<{ data: StorageService[]; total: number }>('/storages');
+    // 兼容：如果 storages 路由不可用，回退到 drivers 列表
     if (response.error) {
       const fallback = await apiClient.get<{ data: any[]; total: number }>('/drivers');
       return {
@@ -32,7 +32,7 @@ export class OpenListService {
 
   /** 添加存储服务 */
   async addStorageService(service: Omit<StorageService, 'id' | 'status'>): Promise<ApiResponse<StorageService>> {
-    const response = await apiClient.post<{ id: string; message: string }>('/storage-manager/create', {
+    const response = await apiClient.post<{ id: string; message: string }>('/storages', {
       name: service.name,
       type: service.type,
       config: service.config,
@@ -50,19 +50,19 @@ export class OpenListService {
 
   /** 删除存储服务 */
   async deleteStorageService(id: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete<{ message: string }>(`/storage-manager/${id}`);
+    const response = await apiClient.delete<{ message: string }>(`/storages/${id}`);
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 启用存储服务 */
   async enableStorageService(id: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>(`/storage-manager/${id}/enable`, {});
+    const response = await apiClient.post<{ message: string }>(`/storages/${id}/enable`, {});
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 禁用存储服务 */
   async disableStorageService(id: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>(`/storage-manager/${id}/disable`, {});
+    const response = await apiClient.post<{ message: string }>(`/storages/${id}/disable`, {});
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
@@ -71,7 +71,7 @@ export class OpenListService {
   /** 列出文件 */
   async listFiles(driverId: string, dirPath: string): Promise<ApiResponse<FileEntry[]>> {
     const response = await apiClient.get<{ data: FileEntry[]; total: number }>(
-      `/storage/browse?driver=${encodeURIComponent(driverId)}&path=${encodeURIComponent(dirPath)}`
+      `/storages/${encodeURIComponent(driverId)}/browse?path=${encodeURIComponent(dirPath)}`
     );
     return {
       data: response.data?.data || [],
@@ -82,7 +82,7 @@ export class OpenListService {
   /** 读取文件内容 */
   async readFile(driverId: string, filePath: string): Promise<ApiResponse<{ content: string; meta: any }>> {
     const response = await apiClient.get<{ data: string; meta: any }>(
-      `/storage/read?driver=${encodeURIComponent(driverId)}&path=${encodeURIComponent(filePath)}`
+      `/storages/${encodeURIComponent(driverId)}/read?path=${encodeURIComponent(filePath)}`
     );
     return {
       data: { content: response.data?.data || '', meta: response.data?.meta },
@@ -92,7 +92,7 @@ export class OpenListService {
 
   /** 写入文件 */
   async writeFile(driverId: string, filePath: string, content: string): Promise<ApiResponse<any>> {
-    return apiClient.post('/storage/write', { driver: driverId, path: filePath, content });
+    return apiClient.post(`/storages/${encodeURIComponent(driverId)}/write`, { path: filePath, content });
   }
 
   /** 上传文件 (multipart) */
@@ -101,11 +101,10 @@ export class OpenListService {
       const authToken = localStorage.getItem('authToken');
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('driver', driverId);
       formData.append('path', targetDir);
 
       const baseUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${baseUrl}/files/upload`, {
+      const response = await fetch(`${baseUrl}/storages/${encodeURIComponent(driverId)}/upload`, {
         method: 'POST',
         headers: { ...(authToken && { 'Authorization': `Bearer ${authToken}` }) },
         body: formData,
@@ -120,40 +119,40 @@ export class OpenListService {
 
   /** 创建文件夹 */
   async createFolder(driverId: string, folderPath: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>('/storage/mkdir', { driver: driverId, path: folderPath });
+    const response = await apiClient.post<{ message: string }>(`/storages/${encodeURIComponent(driverId)}/mkdir`, { path: folderPath });
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 删除文件/目录 */
   async deleteFile(driverId: string, targetPath: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete<{ message: string }>(
-      `/storage/remove?driver=${encodeURIComponent(driverId)}&path=${encodeURIComponent(targetPath)}`
+      `/storages/${encodeURIComponent(driverId)}/remove?path=${encodeURIComponent(targetPath)}`
     );
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 重命名 */
   async renameFile(driverId: string, from: string, to: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>('/storage/rename', { driver: driverId, from, to });
+    const response = await apiClient.post<{ message: string }>(`/storages/${encodeURIComponent(driverId)}/rename`, { from, to });
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 移动 */
   async moveFile(driverId: string, from: string, to: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>('/storage/move', { driver: driverId, from, to });
+    const response = await apiClient.post<{ message: string }>(`/storages/${encodeURIComponent(driverId)}/move`, { from, to });
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 复制 */
   async copyFile(driverId: string, from: string, to: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post<{ message: string }>('/storage/copy', { driver: driverId, from, to });
+    const response = await apiClient.post<{ message: string }>(`/storages/${encodeURIComponent(driverId)}/copy`, { from, to });
     return { data: undefined, message: response.data?.message, error: response.error };
   }
 
   /** 搜索文件 */
   async searchFiles(driverId: string, dirPath: string, keyword: string): Promise<ApiResponse<FileEntry[]>> {
     const response = await apiClient.get<{ data: FileEntry[]; total: number }>(
-      `/storage/search?driver=${encodeURIComponent(driverId)}&path=${encodeURIComponent(dirPath)}&q=${encodeURIComponent(keyword)}`
+      `/storages/${encodeURIComponent(driverId)}/browse?path=${encodeURIComponent(dirPath)}&search=${encodeURIComponent(keyword)}`
     );
     return { data: response.data?.data || [], error: response.error };
   }
@@ -161,9 +160,9 @@ export class OpenListService {
   /** 检查是否存在 */
   async fileExists(driverId: string, targetPath: string): Promise<ApiResponse<{ exists: boolean }>> {
     const response = await apiClient.get<{ data: { exists: boolean } }>(
-      `/storage/exists?driver=${encodeURIComponent(driverId)}&path=${encodeURIComponent(targetPath)}`
+      `/storages/${encodeURIComponent(driverId)}/info?path=${encodeURIComponent(targetPath)}`
     );
-    return { data: response.data?.data || { exists: false }, error: response.error };
+    return { data: { exists: !!response.data?.data }, error: response.error };
   }
 }
 

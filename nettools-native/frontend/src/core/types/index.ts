@@ -46,7 +46,7 @@ export interface AppConfig {
 
 // API响应类型
 export interface ApiResponse<T> {
-  data: T;
+  data: T | undefined;
   message?: string;
   error?: string;
 }
