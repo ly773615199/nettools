@@ -1,0 +1,44 @@
+# Clash配置文件
+port: 7890
+socks-port: 7891
+redir-port: 7892
+allow-lan: true
+bind-address: "*"
+mode: Rule
+log-level: info
+
+# 管理API
+external-controller: 0.0.0.0:9090
+secret: ""
+
+# DNS设置
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  nameserver:
+    - 114.114.114.114
+    - 8.8.8.8
+  fallback:
+    - 8.8.4.4
+
+# 代理服务器
+proxies:
+  - name: "Example Proxy"
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+
+# 代理组
+proxy-groups:
+  - name: "Proxy"
+    type: select
+    proxies:
+      - Example Proxy
+
+# 规则
+rules:
+  - DOMAIN-SUFFIX,google.com,Proxy
+  - DOMAIN-SUFFIX,github.com,Proxy
+  - GEOIP,CN,DIRECT
+  - MATCH,DIRECT

@@ -1,0 +1,42 @@
+{
+  "productName": "NetTools",
+  "appId": "com.nettools.app",
+  "copyright": "Copyright © 2024 NetTools",
+  "directories": {
+    "output": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "main.js",
+    "preload.js"
+  ],
+  "win": {
+    "target": [
+      "nsis",
+      "portable"
+    ],
+    "icon": "public/favicon.ico"
+  },
+  "mac": {
+    "target": [
+      "dmg",
+      "pkg"
+    ],
+    "icon": "public/favicon.icns"
+  },
+  "linux": {
+    "target": [
+      "deb",
+      "rpm",
+      "AppImage"
+    ],
+    "icon": "public/favicon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "public/favicon.ico",
+    "uninstallerIcon": "public/favicon.ico",
+    "installerHeaderIcon": "public/favicon.ico"
+  }
+}

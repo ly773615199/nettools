@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+database.sqlite
+*.sqlite
+.env
+.env.local
+uploads
+downloads
+clash-data
+storage-data
+.git
+.gitignore

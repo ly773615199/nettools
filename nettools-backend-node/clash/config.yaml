@@ -1,0 +1,41 @@
+mixed-port: 7890
+allow-lan: true
+mode: Rule
+log-level: info
+external-controller: 127.0.0.1:9090
+dns:
+  enable: true
+  default-nameserver:
+    - 223.5.5.5
+    - 8.8.8.8
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+proxies:
+  - name: MySS
+    type: ss
+    server: 1.2.3.4
+    port: 8388
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - MySS
+      - DIRECT
+      - REJECT
+  - name: Auto
+    type: url-test
+    proxies:
+      - MySS
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+rules:
+  - DOMAIN-SUFFIX,google.com,Proxy
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - MATCH,DIRECT
