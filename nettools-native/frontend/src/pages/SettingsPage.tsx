@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Card, CardContent, TextField, Button, Switch, FormControlLabel, Box, Alert, Snackbar } from '@mui/material';
+import { Container, Typography, Card, CardContent, TextField, Button, Switch, FormControlLabel, Box, Alert, Snackbar, Chip, Stack, Divider } from '@mui/material';
 import { configService } from '../core/config/configService';
 import type { AppConfig } from '../core/types';
 import { t } from '../core/i18n/i18n';
+import { apiClient } from '../core/api/apiClient';
 
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<AppConfig>({
@@ -51,16 +52,21 @@ const SettingsPage: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   });
 
+  const [netInfo, setNetInfo] = useState<any>(null);
+
   useEffect(() => {
-    // Load settings from config service
     const loadSettings = async () => {
       const savedSettings = await configService.getConfig();
       if (savedSettings) {
         setSettings(savedSettings);
       }
     };
-
     loadSettings();
+
+    // G7: 加载网络环境信息
+    apiClient.get('/network/interfaces').then(res => {
+      if (res.data?.data) setNetInfo(res.data.data);
+    }).catch(() => {});
   }, []);
 
   const handleChange = (_section: string, field: string, value: any) => {
@@ -137,6 +143,37 @@ const SettingsPage: React.FC = () => {
             }
             label={t('settings.autoStart')}
           />
+        </CardContent>
+      </Card>
+
+      {/* G7: 网络环境检测 */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Network Environment
+          </Typography>
+          {netInfo ? (
+            <Box>
+              {Array.isArray(netInfo) ? netInfo.map((iface: any, i: number) => (
+                <Box key={i} sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="subtitle2">{iface.name || iface.interface}</Typography>
+                    <Chip label={iface.status || (iface.up ? 'up' : 'down')} size="small"
+                      color={iface.up || iface.status === 'up' ? 'success' : 'default'} />
+                    {iface.address && <Chip label={iface.address} size="small" variant="outlined" />}
+                  </Stack>
+                </Box>
+              )) : (
+                <Typography variant="body2" color="text.secondary">
+                  Network interfaces detected: {JSON.stringify(netInfo)}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Loading network information...
+            </Typography>
+          )}
         </CardContent>
       </Card>
 

@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
   Refresh, PlayArrow, Stop, Shield, Router,
-  Security
+  Security, Speed
 } from '@mui/icons-material';
 import { apiClient } from '../core/api/apiClient';
 
@@ -18,6 +18,16 @@ interface SystemProxyStatus {
 interface ClashStatus {
   running: boolean;
   hasBinary: boolean;
+  tunEnabled?: boolean;
+}
+
+interface TunStatus {
+  enabled: boolean;
+  stack: string;
+  device: string;
+  autoRoute: boolean;
+  dnsHijack: boolean;
+  requireRoot: boolean;
 }
 
 interface TunnelServer {
@@ -35,6 +45,7 @@ interface TunnelServer {
 const SystemProxyPage: React.FC = () => {
   const [systemProxy, setSystemProxy] = useState<SystemProxyStatus>({ enabled: false });
   const [clashStatus, setClashStatus] = useState<ClashStatus>({ running: false, hasBinary: false });
+  const [tunStatus, setTunStatus] = useState<TunStatus>({ enabled: false, stack: 'system', device: 'utun', autoRoute: true, dnsHijack: true, requireRoot: false });
   const [servers, setServers] = useState<TunnelServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -80,6 +91,23 @@ const SystemProxyPage: React.FC = () => {
     if (res.error) setError(res.error);
     else setSuccess('Clash stopped');
     fetchData();
+  };
+
+  const toggleTun = async () => {
+    try {
+      if (tunStatus.enabled) {
+        const res = await apiClient.put('/clash/tun', { enable: false });
+        if (res.error) setError(res.error);
+        else { setTunStatus(prev => ({ ...prev, enabled: false })); setSuccess('TUN mode disabled'); }
+      } else {
+        const res = await apiClient.put('/clash/tun', {
+          enable: true, stack: tunStatus.stack, device: tunStatus.device,
+          autoRoute: tunStatus.autoRoute, dnsHijack: tunStatus.dnsHijack,
+        });
+        if (res.error) setError(res.error);
+        else { setTunStatus(prev => ({ ...prev, enabled: true })); setSuccess('TUN mode enabled (requires root)'); }
+      }
+    } catch (err: any) { setError(err.message); }
   };
 
   const startServer = async (id: number) => {
@@ -157,6 +185,33 @@ const SystemProxyPage: React.FC = () => {
                     />
                   </Box>
                 </Box>
+              </CardContent>
+            </Card>
+
+            {/* TUN Mode */}
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Speed sx={{ fontSize: 40, color: tunStatus.enabled ? 'success.main' : 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="h6">TUN Mode</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Global network acceleration (requires root/admin). Stack: {tunStatus.stack}, Device: {tunStatus.device}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Chip label={tunStatus.enabled ? 'Active' : 'Inactive'} color={tunStatus.enabled ? 'success' : 'default'} />
+                    <FormControlLabel
+                      control={<Switch checked={tunStatus.enabled} onChange={toggleTun} disabled={!clashStatus.running} />}
+                      label={tunStatus.enabled ? 'ON' : 'OFF'}
+                    />
+                  </Box>
+                </Box>
+                {!clashStatus.running && (
+                  <Alert severity="info" sx={{ mt: 2 }}>Start Clash first to enable TUN mode</Alert>
+                )}
               </CardContent>
             </Card>
 
