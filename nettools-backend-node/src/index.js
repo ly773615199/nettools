@@ -55,6 +55,19 @@ const { registerDownloadRoutes } = require('./routes/downloads');
 const { registerNetworkRoutes } = require('./routes/network');
 const { registerPreviewRoutes } = require('./routes/preview');
 
+// G10: 缓存中间件
+const { cacheMiddleware, getCacheStats } = require('./services/cache');
+app.use('/api/storages', cacheMiddleware('storages', 15000));
+app.use('/api/network', cacheMiddleware('network', 10000));
+app.use('/api/system', cacheMiddleware('system', 10000));
+app.use('/api/clash', cacheMiddleware('clash', 8000));
+app.use('/api/proxies', cacheMiddleware('proxies', 8000));
+
+// 缓存统计 API
+app.get('/api/cache/stats', require('./core/auth').authMiddleware, (req, res) => {
+  res.json({ data: getCacheStats() });
+});
+
 registerAuthRoutes(app, models);
 registerUserRoutes(app, models, require('./core/permission').requirePermission);
 registerFileRoutes(app, models);

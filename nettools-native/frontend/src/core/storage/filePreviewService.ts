@@ -2,7 +2,7 @@ import type { ApiResponse } from '../types';
 import { apiClient } from '../api/apiClient';
 
 // 预览类型
-export type PreviewType = 'text' | 'image' | 'pdf' | 'binary' | 'unknown';
+export type PreviewType = 'text' | 'image' | 'pdf' | 'markdown' | 'office_unavailable' | 'binary' | 'unknown';
 
 // 预览结果
 export interface PreviewResult {
@@ -12,6 +12,8 @@ export interface PreviewResult {
   name?: string;
   size?: number;
   downloadUrl?: string;
+  message?: string;
+  cached?: boolean;
   meta?: { size: number; modified: string };
 }
 
