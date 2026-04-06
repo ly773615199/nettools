@@ -39,6 +39,11 @@ const VpnServer = require('../../models/vpnserver.js')(sequelize, Sequelize.Data
 const PenetrationNode = require('../../models/penetrationnode.js')(sequelize, Sequelize.DataTypes);
 const PenetrationInstance = require('../../models/penetrationinstance.js')(sequelize, Sequelize.DataTypes);
 
+// Phase 7 新增模型
+const ServiceEvent = require('../../models/serviceevent.js')(sequelize, Sequelize.DataTypes);
+const BackupTask = require('../../models/backuptask.js')(sequelize, Sequelize.DataTypes);
+const BackupSnapshot = require('../../models/backupsnapshot.js')(sequelize, Sequelize.DataTypes);
+
 // 同步数据库
 const syncDatabase = async () => {
   try {
@@ -67,4 +72,7 @@ module.exports = {
   VpnServer,
   PenetrationNode,
   PenetrationInstance,
+  ServiceEvent,
+  BackupTask,
+  BackupSnapshot,
 };

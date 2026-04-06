@@ -56,7 +56,7 @@ const { registerNetworkRoutes } = require('./routes/network');
 const { registerPreviewRoutes } = require('./routes/preview');
 
 registerAuthRoutes(app, models);
-registerUserRoutes(app, models);
+registerUserRoutes(app, models, require('./core/permission').requirePermission);
 registerFileRoutes(app, models);
 registerTunnelRoutes(app, models);
 registerProxyRoutes(app, models);
@@ -98,6 +98,76 @@ registerDeploymentRoutes(app, require('./core/auth').authMiddleware);
 // 存储驱动 API (旧版兼容)
 const { registerStorageRoutes } = require('./drivers/storageApi');
 registerStorageRoutes(app, require('./core/auth').authMiddleware);
+
+// ---- Phase 7: 高级功能路由 ----
+const { requirePermission } = require('./core/permission');
+
+// G1: 多协议文件访问服务
+const { registerFileServerRoutes } = require('./routes/fileServer');
+registerFileServerRoutes(app, require('./core/auth').authMiddleware, requirePermission);
+
+// G5: VPN 服务器管理（已在上方注册）
+
+// G8: 用户管理（已在上方注册）
+
+// G9: 备份管理
+const { registerBackupRoutes } = require('./routes/backup');
+registerBackupRoutes(app, require('./core/auth').authMiddleware, requirePermission, models);
+
+// G6: 服务自动重启守护进程
+const ServiceWatchdog = require('./services/serviceWatchdog');
+const watchdog = new ServiceWatchdog({ checkInterval: 30000, maxRetries: 5 });
+
+// 注册 Clash 到 watchdog
+watchdog.register('clash', {
+  name: 'clash',
+  checkFn: async () => {
+    try {
+      const clashManager = require('./clashManager');
+      return clashManager.isRunning && clashManager.isRunning();
+    } catch { return false; }
+  },
+  restartFn: async () => {
+    const clashManager = require('./clashManager');
+    if (clashManager.restart) await clashManager.restart();
+  },
+});
+
+// 注册 Bore 到 watchdog
+watchdog.register('bore', {
+  name: 'bore',
+  checkFn: async () => {
+    try {
+      const boreManager = require('./services/boreServerManager');
+      return boreManager.isRunning && boreManager.isRunning();
+    } catch { return false; }
+  },
+  restartFn: async () => {
+    const boreManager = require('./services/boreServerManager');
+    if (boreManager.restart) await boreManager.restart();
+  },
+});
+
+// watchdog 在 5 秒后启动（等其他服务就绪）
+setTimeout(() => {
+  try { watchdog.start(); } catch (err) {
+    logger.error('Failed to start watchdog', { error: err.message });
+  }
+}, 5000);
+
+// 导出 watchdog 实例供其他模块使用
+app.set('watchdog', watchdog);
+
+// Watchdog 事件日志
+watchdog.on('crash', (key, reason) => {
+  logger.error(`[watchdog] Service ${key} crashed: ${reason}`);
+  wsManager.broadcast && wsManager.broadcast('service-event', {
+    serviceType: key, eventType: 'crash', message: reason, timestamp: new Date(),
+  });
+});
+watchdog.on('restarted', (key) => {
+  logger.info(`[watchdog] Service ${key} restarted successfully`);
+});
 
 // ---- 错误处理 ----
 registerErrorHandlers(app);
