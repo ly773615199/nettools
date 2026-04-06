@@ -6,6 +6,7 @@ const { authMiddleware } = require('../core/auth');
 const { getRecentLogs } = require('../utils/logger');
 const { getClashStatus } = require('../clashManager');
 const wsManager = require('../wsManager');
+const { getCacheStats } = require('../services/cache');
 
 function registerSystemRoutes(app, models) {
   const { SystemSetting } = models;
@@ -36,6 +37,7 @@ function registerSystemRoutes(app, models) {
       services: {
         clash: { running: clashStatus.running, hasBinary: clashStatus.hasBinary },
         websocket: wsManager.getStats(),
+        cache: getCacheStats(),
       },
     });
   });

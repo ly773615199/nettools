@@ -1,211 +1,298 @@
-# 部署文档
+# NetTools 部署文档
+
+> 版本: 1.0.0 | 更新: 2026-04-06
 
 ## 目录
 
-- [简介](#简介)
-- [前提条件](#前提条件)
-- [后端服务部署](#后端服务部署)
-- [前端应用部署](#前端应用部署)
-- [使用 Docker Compose 部署](#使用-docker-compose-部署)
-- [环境变量配置](#环境变量配置)
+- [快速开始](#快速开始)
+- [Docker 部署（推荐）](#docker-部署推荐)
+- [传统部署](#传统部署)
+- [Electron 桌面应用](#electron-桌面应用)
+- [环境变量](#环境变量)
 - [安全配置](#安全配置)
-- [常见问题及解决方案](#常见问题及解决方案)
+- [常见问题](#常见问题)
 
-## 简介
+---
 
-本部署文档旨在指导用户如何部署和使用网络工具软件。该软件以 OpenList 为核心，Bore 和 Clash 为辅助功能，提供了文件管理、网络工具管理等功能。
-
-## 前提条件
-
-在部署之前，确保您的系统满足以下要求：
-
-- Node.js 20 或更高版本
-- npm 或 yarn 包管理器
-- Docker 和 Docker Compose（如果使用容器化部署）
-- 足够的磁盘空间和内存
-
-## 后端服务部署
-
-### 1. 克隆仓库
+## 快速开始
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>
+# Docker 一键启动
+git clone https://github.com/ly773615199/nettools.git
+cd nettools
+cp .env.example .env
+# 编辑 .env 修改 JWT_SECRET
+docker-compose up -d
+
+# 访问 http://localhost
+# 默认账号: admin / password
 ```
 
-### 2. 安装依赖
+---
+
+## Docker 部署（推荐）
+
+### 前置要求
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### 步骤
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/ly773615199/nettools.git
+cd nettools
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，至少修改 JWT_SECRET
+
+# 3. 构建并启动
+docker-compose build
+docker-compose up -d
+
+# 4. 查看状态
+docker-compose ps
+docker-compose logs -f backend
+
+# 5. 停止
+docker-compose down
+```
+
+### 服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| frontend | 80 (可配置) | Nginx 反向代理 + SPA |
+| backend | 8000 (可配置) | Node.js API 服务 |
+
+### 数据持久化
+
+| Volume | 说明 |
+|--------|------|
+| `backend-data` | SQLite 数据库 + 存储配置 |
+| `backend-downloads` | 下载文件目录 |
+| `backend-logs` | 运行日志 |
+
+### 自定义端口
+
+```bash
+# .env
+FRONTEND_PORT=3000
+BACKEND_PORT=9000
+
+docker-compose up -d
+# 前端访问: http://localhost:3000
+```
+
+---
+
+## 传统部署
+
+### 前置要求
+
+- Node.js 22+
+- npm 10+
+
+### 后端部署
 
 ```bash
 cd nettools-backend-node
+
+# 安装依赖
 npm install
-```
 
-### 3. 配置环境变量
+# 配置环境变量（可选）
+cp ../.env.example .env
 
-创建 `.env` 文件，并添加以下配置：
-
-```env
-# 服务器配置
-PORT=8000
-NODE_ENV=production
-
-# JWT 密钥
-JWT_SECRET=your-secret-key
-
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=nettools
-DB_USER=root
-DB_PASSWORD=password
-```
-
-### 4. 运行数据库迁移和种子数据
-
-```bash
-# 运行数据库迁移
-npx sequelize-cli db:migrate
-
-# 运行种子数据
-npx sequelize-cli db:seed:all
-```
-
-### 5. 启动后端服务
-
-```bash
+# 启动
 npm start
+# 或开发模式
+npm run dev
+
+# 后端运行在 http://localhost:8000
 ```
 
-后端服务将在 `http://localhost:8000` 上运行。
-
-## 前端应用部署
-
-### 1. 安装依赖
+### 前端部署
 
 ```bash
 cd nettools-native/frontend
+
+# 安装依赖
 npm install
-```
 
-### 2. 构建应用
+# 开发模式（含热更新）
+npm run dev
+# 访问 http://localhost:5173
 
-```bash
+# 生产构建
 npm run build
+# 产出在 dist/ 目录，用 Nginx 等托管
 ```
 
-### 3. 部署构建结果
-
-将 `dist` 目录中的文件部署到您的 Web 服务器（如 Nginx、Apache 等）。
-
-### 4. 配置 Nginx
-
-如果使用 Nginx 作为 Web 服务器，创建以下配置文件：
+### Nginx 配置示例
 
 ```nginx
 server {
     listen 80;
-    server_name example.com;
+    server_name your-domain.com;
+    root /path/to/nettools/native/frontend/dist;
+    index index.html;
 
+    # SPA 路由
     location / {
-        root /path/to/dist;
-        index index.html;
         try_files $uri $uri/ /index.html;
     }
 
+    # API 代理
     location /api {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # WebSocket 代理
+    location /ws {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_read_timeout 86400;
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|ico|svg|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 }
 ```
 
-## 使用 Docker Compose 部署
+---
 
-### 1. 配置环境变量
+## Electron 桌面应用
 
-创建 `.env` 文件，并添加以下配置：
-
-```env
-# 服务器配置
-PORT=8000
-NODE_ENV=production
-
-# JWT 密钥
-JWT_SECRET=your-secret-key
-```
-
-### 2. 构建和运行容器
+### 开发模式
 
 ```bash
-docker-compose build
-docker-compose up -d
+cd nettools-native/frontend
+npm install
+npm run dev          # 启动 Vite 开发服务器
+npm run electron:dev # 启动 Electron 窗口
 ```
 
-前端应用将在 `http://localhost` 上运行，后端服务将在 `http://localhost:8000` 上运行。
+### 打包
 
-## 环境变量配置
+```bash
+cd nettools-native/frontend
+npm run build        # 构建前端
 
-| 变量名 | 描述 | 默认值 |
-|-------|------|-------|
-| `PORT` | 后端服务端口 | 8000 |
-| `NODE_ENV` | 运行环境 | development |
-| `JWT_SECRET` | JWT 密钥 | your-secret-key |
-| `DB_HOST` | 数据库主机 | localhost |
-| `DB_PORT` | 数据库端口 | 3306 |
-| `DB_NAME` | 数据库名称 | nettools |
-| `DB_USER` | 数据库用户 | root |
-| `DB_PASSWORD` | 数据库密码 | password |
+# 打包当前平台
+npm run electron:build
+
+# 指定平台
+npm run electron:build:win     # Windows NSIS 安装包
+npm run electron:build:mac     # macOS DMG
+npm run electron:build:linux   # Linux AppImage + DEB
+
+# 产出在 release/ 目录
+```
+
+### 打包说明
+
+- 后端代码自动包含在 `extraResources/backend` 中
+- Electron 启动时自动 fork 后端子进程
+- 退出时自动停止后端进程
+
+---
+
+## 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `PORT` | 8000 | 后端服务端口 |
+| `NODE_ENV` | development | 运行环境 (development/production) |
+| `JWT_SECRET` | change-me-... | JWT 签名密钥（**必须修改**） |
+| `LOG_LEVEL` | info | 日志级别 (debug/info/warn/error) |
+| `FRONTEND_PORT` | 80 | Docker 前端映射端口 |
+| `BACKEND_PORT` | 8000 | Docker 后端映射端口 |
+
+完整示例见 `.env.example`。
+
+---
 
 ## 安全配置
 
-### 1. 更改默认密码
+### 必做事项
 
-在首次部署后，登录系统并更改默认管理员密码。
+1. **修改 JWT_SECRET**
+   ```bash
+   # 生成随机密钥
+   openssl rand -hex 32
+   # 写入 .env
+   JWT_SECRET=your-generated-key
+   ```
 
-### 2. 配置 HTTPS
+2. **修改默认密码**
+   - 首次登录后立即修改 admin 密码
+   - 默认账号: `admin` / `password`
 
-在生产环境中，建议配置 HTTPS 以提高安全性。
+3. **配置 HTTPS**（生产环境）
+   - 使用 Nginx + Let's Encrypt
+   - 或使用 Cloudflare 代理
 
-### 3. 配置防火墙
+### 建议事项
 
-配置防火墙，只允许必要的端口访问。
+- 配置防火墙，仅开放必要端口 (80, 443)
+- 定期更新依赖: `npm audit fix`
+- 限制文件上传大小
+- 定期备份 `backend-data` volume
 
-### 4. 定期更新依赖
+---
 
-定期更新依赖，以修复安全漏洞。
+## 常见问题
 
-## 常见问题及解决方案
+### Q: 后端启动报错 `better-sqlite3` 编译失败
 
-### 1. 后端服务启动失败
+```bash
+cd nettools-backend-node
+npm rebuild better-sqlite3
+# 如果仍然失败，安装构建工具
+apt-get install python3 make g++
+```
 
-**问题**：后端服务启动失败，显示端口被占用。
+### Q: Docker 容器无法连接 GitHub
 
-**解决方案**：检查端口 8000 是否被其他进程占用，如有必要，修改 `.env` 文件中的 `PORT` 变量。
+容器内网络配置问题，检查 DNS 或代理设置：
+```bash
+docker-compose exec backend curl -sI https://github.com
+```
 
-### 2. 数据库连接失败
+### Q: 前端空白页面
 
-**问题**：后端服务无法连接到数据库。
+检查 nginx.conf 中 API 代理是否正确指向 backend 容器：
+```bash
+docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
+```
 
-**解决方案**：检查数据库配置是否正确，确保数据库服务正在运行。
+### Q: WebSocket 连接失败
 
-### 3. 前端应用无法访问后端 API
+确保 nginx 配置了 WebSocket 代理（`Upgrade` 和 `Connection` header）。
 
-**问题**：前端应用无法访问后端 API，显示跨域错误。
+### Q: 忘记管理员密码
 
-**解决方案**：确保后端服务的 CORS 配置正确，允许前端应用的域名访问。
+删除数据库重新初始化：
+```bash
+# Docker
+docker-compose down
+docker volume rm nettools_backend-data
+docker-compose up -d
 
-### 4. 登录失败
-
-**问题**：用户无法登录，显示验证码错误。
-
-**解决方案**：确保验证码正确输入，并且会话管理正常工作。
-
-### 5. 文件上传失败
-
-**问题**：文件上传失败，显示服务器错误。
-
-**解决方案**：检查文件上传目录的权限，确保服务器有写权限。
+# 传统部署
+rm nettools-backend-node/data/nettools.db
+npm start
+```

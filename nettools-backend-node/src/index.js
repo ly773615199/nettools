@@ -5,8 +5,23 @@
  * 业务逻辑全部拆分到 src/routes/ 和 src/services/
  */
 require('dotenv').config();
-const express = require('express');
 const { logger } = require('./utils/logger');
+
+// ---- 全局错误处理 ----
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception', { error: err.message, stack: err.stack });
+  // 不立即退出，给日志时间写入
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+const express = require('express');
 const { registerMiddleware, registerErrorHandlers } = require('./core/middleware');
 
 // ---- 数据库模型 ----
