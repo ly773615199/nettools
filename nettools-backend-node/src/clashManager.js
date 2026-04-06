@@ -324,6 +324,59 @@ function updateConfig(proxies, mode, rules) {
   return { success: true, message: 'Config updated (Clash not running)' };
 }
 
+/**
+ * 设置 TUN 模式
+ * @param {boolean} enable - 是否启用 TUN
+ * @param {Object} options - TUN 配置选项
+ */
+function setTunMode(enable, options = {}) {
+  if (!clashConfig) clashConfig = defaultConfig();
+
+  if (enable) {
+    clashConfig.tun = {
+      enable: true,
+      stack: options.stack || 'mixed', // system/gvisor/mixed
+      'dns-hijack': options.dnsHijack || 'any:53',
+      'auto-route': options.autoRoute !== false,
+      'auto-detect-interface': options.autoDetect !== false,
+      ...(options.device ? { device: options.device } : {}),
+    };
+    // TUN 模式需要 DNS 劫持
+    if (!clashConfig.dns) {
+      clashConfig.dns = {
+        enable: true,
+        listen: '0.0.0.0:5353',
+        'enhanced-mode': 'fake-ip',
+        nameserver: ['114.114.114.114', '8.8.8.8'],
+        fallback: ['8.8.4.4'],
+      };
+    }
+  } else {
+    delete clashConfig.tun;
+  }
+
+  // 写入配置文件
+  const yamlStr = configToYaml(clashConfig);
+  fs.writeFileSync(CLASH_CONFIG_FILE, yamlStr, 'utf8');
+
+  return {
+    success: true,
+    tunEnabled: !!clashConfig.tun?.enable,
+    config: clashConfig.tun || null,
+  };
+}
+
+/**
+ * 获取 TUN 状态
+ */
+function getTunStatus() {
+  if (!clashConfig) return { enabled: false };
+  return {
+    enabled: !!clashConfig.tun?.enable,
+    config: clashConfig.tun || null,
+  };
+}
+
 module.exports = {
   startClash,
   stopClash,
@@ -332,4 +385,6 @@ module.exports = {
   getCurrentConfig,
   updateConfig,
   buildClashConfigFromDb,
+  setTunMode,
+  getTunStatus,
 };
